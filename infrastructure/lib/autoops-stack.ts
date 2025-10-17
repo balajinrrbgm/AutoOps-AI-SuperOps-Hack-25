@@ -51,7 +51,7 @@ export class AutoOpsStack extends cdk.Stack {
     // ============================================
 
     // Playbooks Repository
-    const playbooksbucket = new s3.Bucket(this, 'PlaybooksBucket', {
+    const playbooksBucket = new s3.Bucket(this, 'PlaybooksBucket', {
       versioned: true,
       encryption: s3.BucketEncryption.S3_MANAGED,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
