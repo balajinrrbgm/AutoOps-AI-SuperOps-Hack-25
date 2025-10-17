@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import InventoryList from './InventoryList';
+import AlertManagement from './AlertManagement';
 
 const EnhancedDashboard = () => {
   const [patchStatus, setPatchStatus] = useState({});
@@ -297,7 +299,7 @@ const EnhancedDashboard = () => {
           
           {/* Tabs */}
           <div className="flex space-x-1 border-b border-gray-200">
-            {['overview', 'vulnerabilities', 'patches', 'alerts'].map((tab) => (
+            {['overview', 'vulnerabilities', 'inventory', 'alerts', 'patches'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -383,6 +385,11 @@ const EnhancedDashboard = () => {
           </div>
         )}
 
+        {/* Inventory Tab */}
+        {activeTab === 'inventory' && (
+          <InventoryList />
+        )}
+
         {/* Patches Tab */}
         {activeTab === 'patches' && (
           <PatchManagement patchStatus={patchStatus} stats={stats} />
@@ -390,7 +397,7 @@ const EnhancedDashboard = () => {
 
         {/* Alerts Tab */}
         {activeTab === 'alerts' && (
-          <AlertsManagement alerts={alerts} getSeverityBadge={getSeverityBadge} formatTimeAgo={formatTimeAgo} />
+          <AlertManagement />
         )}
       </div>
     </div>

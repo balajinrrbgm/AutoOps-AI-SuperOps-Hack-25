@@ -305,6 +305,328 @@ def get_stats_overview():
     
     return jsonify(stats)
 
+@app.route('/api/inventory', methods=['GET'])
+def get_inventory():
+    """Get SuperOps device inventory with vulnerability data"""
+    # Mock comprehensive inventory data
+    inventory = [
+        {
+            'id': 'dev-001',
+            'name': 'WEB-SERVER-PROD-01',
+            'type': 'Windows Server',
+            'operatingSystem': 'Windows Server 2019 Build 17763',
+            'ipAddress': '192.168.1.10',
+            'macAddress': '00:0C:29:A1:B2:C3',
+            'lastSeenAt': datetime.now().isoformat(),
+            'client': 'Acme Corporation',
+            'site': 'Data Center East',
+            'vulnerabilityStats': {
+                'total': 8,
+                'critical': 2,
+                'high': 3,
+                'medium': 3
+            },
+            'topVulnerabilities': [
+                {'cveId': 'CVE-2024-38063', 'cvssScore': 9.8, 'severity': 'CRITICAL'},
+                {'cveId': 'CVE-2024-43491', 'cvssScore': 9.0, 'severity': 'CRITICAL'}
+            ],
+            'riskScore': 87.5
+        },
+        {
+            'id': 'dev-002',
+            'name': 'DB-SERVER-PROD-01',
+            'type': 'Linux Server',
+            'operatingSystem': 'Ubuntu 22.04.3 LTS',
+            'ipAddress': '192.168.1.20',
+            'macAddress': '00:0C:29:D4:E5:F6',
+            'lastSeenAt': datetime.now().isoformat(),
+            'client': 'Acme Corporation',
+            'site': 'Data Center East',
+            'vulnerabilityStats': {
+                'total': 5,
+                'critical': 1,
+                'high': 2,
+                'medium': 2
+            },
+            'topVulnerabilities': [
+                {'cveId': 'CVE-2024-26130', 'cvssScore': 9.1, 'severity': 'CRITICAL'}
+            ],
+            'riskScore': 72.3
+        },
+        {
+            'id': 'dev-003',
+            'name': 'APP-SERVER-PROD-01',
+            'type': 'Windows Server',
+            'operatingSystem': 'Windows Server 2022 Build 20348',
+            'ipAddress': '192.168.1.30',
+            'macAddress': '00:0C:29:G7:H8:I9',
+            'lastSeenAt': datetime.now().isoformat(),
+            'client': 'TechStart Inc',
+            'site': 'Data Center West',
+            'vulnerabilityStats': {
+                'total': 12,
+                'critical': 3,
+                'high': 5,
+                'medium': 4
+            },
+            'topVulnerabilities': [
+                {'cveId': 'CVE-2024-38063', 'cvssScore': 9.8, 'severity': 'CRITICAL'},
+                {'cveId': 'CVE-2024-43491', 'cvssScore': 9.0, 'severity': 'CRITICAL'}
+            ],
+            'riskScore': 92.1
+        },
+        {
+            'id': 'dev-004',
+            'name': 'FILE-SERVER-01',
+            'type': 'Windows Server',
+            'operatingSystem': 'Windows Server 2016 Build 14393',
+            'ipAddress': '192.168.1.40',
+            'macAddress': '00:0C:29:J1:K2:L3',
+            'lastSeenAt': (datetime.now() - timedelta(hours=2)).isoformat(),
+            'client': 'Global Enterprises',
+            'site': 'Branch Office',
+            'vulnerabilityStats': {
+                'total': 15,
+                'critical': 5,
+                'high': 6,
+                'medium': 4
+            },
+            'topVulnerabilities': [
+                {'cveId': 'CVE-2024-38063', 'cvssScore': 9.8, 'severity': 'CRITICAL'},
+                {'cveId': 'CVE-2024-43491', 'cvssScore': 9.0, 'severity': 'CRITICAL'}
+            ],
+            'riskScore': 95.7
+        },
+        {
+            'id': 'dev-005',
+            'name': 'WORKSTATION-HR-05',
+            'type': 'Workstation',
+            'operatingSystem': 'Windows 11 Pro Build 22621',
+            'ipAddress': '192.168.2.15',
+            'macAddress': '00:0C:29:M4:N5:O6',
+            'lastSeenAt': datetime.now().isoformat(),
+            'client': 'Acme Corporation',
+            'site': 'Headquarters',
+            'vulnerabilityStats': {
+                'total': 3,
+                'critical': 0,
+                'high': 1,
+                'medium': 2
+            },
+            'topVulnerabilities': [
+                {'cveId': 'CVE-2024-38200', 'cvssScore': 7.5, 'severity': 'HIGH'}
+            ],
+            'riskScore': 35.2
+        }
+    ]
+    return jsonify(inventory)
+
+@app.route('/api/alerts', methods=['GET'])
+def get_enriched_alerts():
+    """Get alerts enriched with vulnerability context"""
+    alerts = [
+        {
+            'id': 'alert-001',
+            'title': 'Critical Vulnerability Detected',
+            'description': 'CVE-2024-38063 detected on WEB-SERVER-PROD-01',
+            'severity': 'CRITICAL',
+            'status': 'ACTIVE',
+            'source': 'NVD Scanner',
+            'deviceId': 'dev-001',
+            'deviceName': 'WEB-SERVER-PROD-01',
+            'createdAt': (datetime.now() - timedelta(hours=2)).isoformat(),
+            'updatedAt': (datetime.now() - timedelta(hours=1)).isoformat(),
+            'relatedVulnerabilities': 8,
+            'criticalVulnerabilities': 2,
+            'highVulnerabilities': 3,
+            'vulnerabilityDetails': [
+                {
+                    'cveId': 'CVE-2024-38063',
+                    'cvssScore': 9.8,
+                    'severity': 'CRITICAL',
+                    'description': 'Windows TCP/IP Remote Code Execution Vulnerability'
+                }
+            ]
+        },
+        {
+            'id': 'alert-002',
+            'title': 'Multiple High Severity Vulnerabilities',
+            'description': 'Multiple vulnerabilities detected on APP-SERVER-PROD-01',
+            'severity': 'HIGH',
+            'status': 'ACTIVE',
+            'source': 'Vulnerability Analyzer',
+            'deviceId': 'dev-003',
+            'deviceName': 'APP-SERVER-PROD-01',
+            'createdAt': (datetime.now() - timedelta(hours=5)).isoformat(),
+            'updatedAt': (datetime.now() - timedelta(hours=3)).isoformat(),
+            'relatedVulnerabilities': 12,
+            'criticalVulnerabilities': 3,
+            'highVulnerabilities': 5,
+            'vulnerabilityDetails': [
+                {
+                    'cveId': 'CVE-2024-38063',
+                    'cvssScore': 9.8,
+                    'severity': 'CRITICAL',
+                    'description': 'Windows TCP/IP Remote Code Execution Vulnerability'
+                },
+                {
+                    'cveId': 'CVE-2024-43491',
+                    'cvssScore': 9.0,
+                    'severity': 'CRITICAL',
+                    'description': 'Windows Update Remote Code Execution Vulnerability'
+                }
+            ]
+        },
+        {
+            'id': 'alert-003',
+            'title': 'Outdated OS Version Detected',
+            'description': 'Windows Server 2016 requires security updates',
+            'severity': 'HIGH',
+            'status': 'ACKNOWLEDGED',
+            'source': 'Compliance Scanner',
+            'deviceId': 'dev-004',
+            'deviceName': 'FILE-SERVER-01',
+            'createdAt': (datetime.now() - timedelta(days=1)).isoformat(),
+            'updatedAt': (datetime.now() - timedelta(hours=6)).isoformat(),
+            'relatedVulnerabilities': 15,
+            'criticalVulnerabilities': 5,
+            'highVulnerabilities': 6,
+            'vulnerabilityDetails': [
+                {
+                    'cveId': 'CVE-2024-38063',
+                    'cvssScore': 9.8,
+                    'severity': 'CRITICAL',
+                    'description': 'Windows TCP/IP Remote Code Execution Vulnerability'
+                }
+            ]
+        },
+        {
+            'id': 'alert-004',
+            'title': 'Patch Deployment Required',
+            'description': 'Security patches pending for DB-SERVER-PROD-01',
+            'severity': 'MEDIUM',
+            'status': 'ACTIVE',
+            'source': 'Patch Manager',
+            'deviceId': 'dev-002',
+            'deviceName': 'DB-SERVER-PROD-01',
+            'createdAt': (datetime.now() - timedelta(hours=8)).isoformat(),
+            'updatedAt': (datetime.now() - timedelta(hours=8)).isoformat(),
+            'relatedVulnerabilities': 5,
+            'criticalVulnerabilities': 1,
+            'highVulnerabilities': 2,
+            'vulnerabilityDetails': []
+        }
+    ]
+    return jsonify(alerts)
+
+@app.route('/api/alerts', methods=['POST'])
+def create_alert():
+    """Create a new alert"""
+    data = request.get_json()
+    
+    alert = {
+        'alertId': f"ALERT-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+        'title': data.get('title', 'New Alert'),
+        'description': data.get('description', ''),
+        'severity': data.get('severity', 'MEDIUM'),
+        'deviceId': data.get('deviceId'),
+        'deviceName': data.get('deviceName'),
+        'createdAt': datetime.now().isoformat(),
+        'status': 'ACTIVE'
+    }
+    
+    return jsonify(alert), 201
+
+@app.route('/api/patch-analysis', methods=['GET'])
+def get_patch_analysis():
+    """Get patch coverage analysis"""
+    analysis = {
+        'totalDevices': 147,
+        'fullyPatched': 98,
+        'partiallyPatched': 35,
+        'unpatched': 14,
+        'coverageRate': 66.7,
+        'criticalExposure': [
+            {
+                'deviceId': 'dev-004',
+                'deviceName': 'FILE-SERVER-01',
+                'cveId': 'CVE-2024-38063',
+                'cvssScore': 9.8
+            },
+            {
+                'deviceId': 'dev-003',
+                'deviceName': 'APP-SERVER-PROD-01',
+                'cveId': 'CVE-2024-38063',
+                'cvssScore': 9.8
+            }
+        ],
+        'patchRecommendations': [
+            {
+                'deviceId': 'dev-001',
+                'deviceName': 'WEB-SERVER-PROD-01',
+                'criticalPatches': 2,
+                'patches': [
+                    {
+                        'id': 'KB5043083',
+                        'title': 'Security Update for Windows Server 2019',
+                        'severity': 'Critical',
+                        'cveId': 'CVE-2024-38063'
+                    }
+                ]
+            },
+            {
+                'deviceId': 'dev-004',
+                'deviceName': 'FILE-SERVER-01',
+                'criticalPatches': 5,
+                'patches': [
+                    {
+                        'id': 'KB5043064',
+                        'title': 'Security Update for Windows Server 2016',
+                        'severity': 'Critical',
+                        'cveId': 'CVE-2024-38063'
+                    }
+                ]
+            }
+        ]
+    }
+    return jsonify(analysis)
+
+@app.route('/api/vulnerability-analysis', methods=['GET'])
+def get_vulnerability_analysis():
+    """Analyze vulnerabilities across all devices"""
+    device_id = request.args.get('deviceId')
+    
+    # Mock vulnerability analysis data
+    vulnerabilities = [
+        {
+            'deviceId': 'dev-001',
+            'deviceName': 'WEB-SERVER-PROD-01',
+            'cveId': 'CVE-2024-38063',
+            'cvssScore': 9.8,
+            'severity': 'CRITICAL',
+            'description': 'Windows TCP/IP Remote Code Execution Vulnerability',
+            'publishedDate': '2024-08-13',
+            'patchAvailable': True,
+            'affectedSoftware': ['Windows Server 2019']
+        },
+        {
+            'deviceId': 'dev-002',
+            'deviceName': 'DB-SERVER-PROD-01',
+            'cveId': 'CVE-2024-26130',
+            'cvssScore': 9.1,
+            'severity': 'CRITICAL',
+            'description': 'Linux Kernel Use After Free Vulnerability',
+            'publishedDate': '2024-07-22',
+            'patchAvailable': True,
+            'affectedSoftware': ['Ubuntu 22.04']
+        }
+    ]
+    
+    if device_id:
+        vulnerabilities = [v for v in vulnerabilities if v['deviceId'] == device_id]
+    
+    return jsonify(vulnerabilities)
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3001))
     print(f"🚀 AutoOps AI Local Dev Server starting on port {port}")
@@ -318,6 +640,11 @@ if __name__ == '__main__':
     print("  GET  /devices/inventory")
     print("  GET  /nvd/top-cves")
     print("  GET  /stats/overview")
+    print("  GET  /api/inventory               - Device inventory with vulnerabilities")
+    print("  GET  /api/alerts                  - Alerts with vulnerability context")
+    print("  POST /api/alerts                  - Create new alert")
+    print("  GET  /api/patch-analysis          - Patch coverage analysis")
+    print("  GET  /api/vulnerability-analysis  - Vulnerability analysis")
     print("  POST /ai/risk-assessment")
     print("  POST /workflow/execute")
     

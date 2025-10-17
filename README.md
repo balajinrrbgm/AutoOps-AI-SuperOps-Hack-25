@@ -1,23 +1,59 @@
 # AutoOps AI - Agentic AI-Powered IT Operations Platform
 
 ## Overview
-AutoOps AI is an Agentic AI-powered platform designed to make IT operations self-driving for MSPs and IT teams. It intelligently handles patch management, alert management, and routine IT administrative tasks through autonomous AI agents.
+AutoOps AI is an Agentic AI-powered platform designed to make IT operations self-driving for MSPs and IT teams. It intelligently handles patch management, alert management, vulnerability scanning, and routine IT administrative tasks through autonomous AI agents with real-time AWS services integration.
+
+## 🆕 Latest Features
+- **NVD Vulnerability Integration**: Real-time CVE scanning and correlation with device inventory
+- **SuperOps MSP Device Inventory**: Complete visibility into all managed devices with vulnerability status
+- **AWS Real-Time Alerting**: SNS notifications for critical vulnerabilities
+- **DynamoDB Vulnerability Tracking**: Historical vulnerability data and trend analysis
+- **EventBridge Automation**: Event-driven patch deployment and remediation
+- **Enhanced Dashboard**: Modern UI with inventory management and alert creation
 
 ## Architecture
-- **Frontend**: React + TailwindCSS (AWS Amplify)
-- **Backend**: AWS Lambda + API Gateway
+- **Frontend**: Next.js 14 + React 18 + TailwindCSS (AWS Amplify)
+- **Backend**: AWS Lambda + API Gateway + Flask (Local Dev)
 - **AI Orchestration**: AWS Bedrock + CrewAI
-- **Workflow**: AWS Step Functions
+- **Workflow**: AWS Step Functions + EventBridge
 - **Storage**: DynamoDB, S3, Amazon OpenSearch
-- **Integration**: SuperOps.ai APIs
+- **Alerting**: Amazon SNS + EventBridge
+- **Integration**: SuperOps.ai APIs + NVD API
 - **Monitoring**: CloudWatch + CloudTrail
 
 ## Key Features
-1. **Patch Management**: Automated discovery, prioritization, and safe deployment
-2. **Alert Management**: Intelligent correlation and root cause analysis
-3. **Automated Remediation**: Policy-driven autonomous actions
-4. **ChatOps Interface**: Slack/Teams integration
-5. **Continuous Learning**: AI adapts from feedback
+1. **Vulnerability Management**: 
+   - Real-time NVD CVE scanning
+   - Device-to-vulnerability correlation
+   - Risk scoring and prioritization
+   - Top 10 critical CVE dashboard
+
+2. **Patch Management**: 
+   - Automated discovery and prioritization
+   - Patch coverage analysis
+   - Safe deployment with rollback
+   - Compliance reporting
+
+3. **Device Inventory Management**:
+   - Real-time SuperOps device synchronization
+   - Vulnerability status per device
+   - Risk-based sorting and filtering
+   - OS and software inventory
+
+4. **Alert Management**: 
+   - Intelligent correlation and root cause analysis
+   - Vulnerability-enriched alerts
+   - Manual and automated alert creation
+   - AWS SNS real-time notifications
+
+5. **Automated Remediation**: 
+   - Policy-driven autonomous actions
+   - EventBridge-triggered workflows
+   - Emergency patch deployment
+   - Compliance enforcement
+
+6. **ChatOps Interface**: Slack/Teams integration
+7. **Continuous Learning**: AI adapts from feedback
 
 ## Project Structure
 ```
@@ -64,14 +100,75 @@ npm install
 
 ### 3. Configure Environment
 Copy `.env.example` to `.env` and fill in:
-```
+```bash
+# SuperOps Configuration
 SUPEROPS_API_TOKEN=your_token_here
 SUPEROPS_SUBDOMAIN=your_subdomain
+SUPEROPS_DATA_CENTER=us
+
+# AWS Configuration
 AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
 BEDROCK_MODEL=anthropic.claude-3-5-sonnet-20241022-v2:0
+
+# DynamoDB
+VULNERABILITY_TABLE=AutoOps-Vulnerabilities
+
+# SNS
+ALERT_SNS_TOPIC_ARN=arn:aws:sns:us-east-1:ACCOUNT_ID:AutoOps-CriticalAlerts
+
+# NVD API
+NVD_API_KEY=your_nvd_api_key
+
+# Slack Integration (Optional)
 SLACK_BOT_TOKEN=your_slack_token
 SLACK_SIGNING_SECRET=your_signing_secret
 ```
+
+## Quick Start (Local Development)
+
+1. **Start Backend Server**:
+```bash
+# Terminal 1
+cd backend
+python ../local_dev_server.py
+# Server starts on http://localhost:3001
+```
+
+2. **Start Frontend**:
+```bash
+# Terminal 2
+cd frontend
+npm run dev
+# Dashboard opens on http://localhost:3000
+```
+
+3. **Access Features**:
+- **Overview Tab**: Dashboard statistics and top 10 CVEs
+- **Vulnerabilities Tab**: Detailed CVE analysis
+- **Inventory Tab**: SuperOps device list with vulnerability status
+- **Alerts Tab**: Create and manage security alerts
+- **Patches Tab**: Patch management and compliance
+
+## API Endpoints
+
+### Device & Vulnerability Endpoints
+- `GET /api/inventory` - Device inventory with vulnerability stats
+- `GET /api/vulnerability-analysis?deviceId=<id>` - Analyze device vulnerabilities
+- `GET /api/patch-analysis` - Patch coverage analysis
+
+### Alert Endpoints
+- `GET /api/alerts` - Get alerts with vulnerability context
+- `POST /api/alerts` - Create new alert
+
+### NVD Integration
+- `GET /nvd/top-cves` - Top 10 critical CVEs
+
+### Statistics
+- `GET /stats/overview` - Dashboard statistics
+
+See [AWS_INTEGRATION.md](./AWS_INTEGRATION.md) for detailed AWS setup and real-time features.
 
 ### 4. Deploy Infrastructure
 ```bash
