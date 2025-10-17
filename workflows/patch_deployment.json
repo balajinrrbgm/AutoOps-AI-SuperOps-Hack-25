@@ -1,0 +1,254 @@
+{
+  "Comment": "Patch Deployment Workflow with AI Decision Making",
+  "StartAt": "GetPatchDetails",
+  "States": {
+    "GetPatchDetails": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${PatchDetailsFunction}",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.patchDetails",
+      "Next": "AIRiskAssessment",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "NotifyFailure",
+          "ResultPath": "$.error"
+        }
+      ]
+    },
+    "AIRiskAssessment": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${AIRiskAssessmentFunction}",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.riskAssessment",
+      "Next": "CheckApprovalRequired"
+    },
+    "CheckApprovalRequired": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.riskAssessment.Payload.requiresApproval",
+          "BooleanEquals": true,
+          "Next": "RequestApproval"
+        }
+      ],
+      "Default": "DeployPatches"
+    },
+    "RequestApproval": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+      "Parameters": {
+        "FunctionName": "${ApprovalRequestFunction}",
+        "Payload": {
+          "taskToken.$": "$$.Task.Token",
+          "details.$": "$"
+        }
+      },
+      "ResultPath": "$.approvalResult",
+      "TimeoutSeconds": 3600,
+      "Next": "CheckApprovalStatus",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.Timeout"
+          ],
+          "Next": "ApprovalTimeout",
+          "ResultPath": "$.error"
+        }
+      ]
+    },
+    "CheckApprovalStatus": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.approvalResult.Payload.approved",
+          "BooleanEquals": true,
+          "Next": "DeployPatches"
+        }
+      ],
+      "Default": "ApprovalDenied"
+    },
+    "DeployPatches": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${PatchDeploymentFunction}",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.deploymentResult",
+      "Next": "WaitForCompletion",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "DeploymentFailed",
+          "ResultPath": "$.error"
+        }
+      ]
+    },
+    "WaitForCompletion": {
+      "Type": "Wait",
+      "Seconds": 60,
+      "Next": "CheckDeploymentStatus"
+    },
+    "CheckDeploymentStatus": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${CheckStatusFunction}",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.statusCheck",
+      "Next": "EvaluateStatus"
+    },
+    "EvaluateStatus": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.statusCheck.Payload.status",
+          "StringEquals": "COMPLETED",
+          "Next": "VerifySuccess"
+        },
+        {
+          "Variable": "$.statusCheck.Payload.status",
+          "StringEquals": "FAILED",
+          "Next": "InitiateRollback"
+        },
+        {
+          "Variable": "$.statusCheck.Payload.status",
+          "StringEquals": "IN_PROGRESS",
+          "Next": "WaitForCompletion"
+        }
+      ],
+      "Default": "WaitForCompletion"
+    },
+    "VerifySuccess": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${VerificationFunction}",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.verification",
+      "Next": "UpdateSuccessMetrics"
+    },
+    "UpdateSuccessMetrics": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${MetricsFunction}",
+        "Payload.$": "$"
+      },
+      "Next": "NotifySuccess"
+    },
+    "NotifySuccess": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${NotificationFunction}",
+        "Payload": {
+          "type": "SUCCESS",
+          "details.$": "$"
+        }
+      },
+      "End": true
+    },
+    "InitiateRollback": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${RollbackFunction}",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.rollbackResult",
+      "Next": "NotifyRollback",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 3,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ]
+    },
+    "NotifyRollback": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${NotificationFunction}",
+        "Payload": {
+          "type": "ROLLBACK",
+          "details.$": "$"
+        }
+      },
+      "End": true
+    },
+    "DeploymentFailed": {
+      "Type": "Pass",
+      "Result": {
+        "status": "FAILED",
+        "reason": "Deployment failed after retries"
+      },
+      "Next": "NotifyFailure"
+    },
+    "ApprovalTimeout": {
+      "Type": "Pass",
+      "Result": {
+        "status": "TIMEOUT",
+        "reason": "Approval request timed out"
+      },
+      "Next": "NotifyFailure"
+    },
+    "ApprovalDenied": {
+      "Type": "Pass",
+      "Result": {
+        "status": "DENIED",
+        "reason": "Approval was denied"
+      },
+      "Next": "NotifyFailure"
+    },
+    "NotifyFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${NotificationFunction}",
+        "Payload": {
+          "type": "FAILURE",
+          "details.$": "$"
+        }
+      },
+      "End": true
+    }
+  }
+}

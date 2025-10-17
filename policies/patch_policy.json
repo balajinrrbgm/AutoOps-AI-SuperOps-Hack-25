@@ -1,0 +1,64 @@
+{
+  "policyId": "default-patch-policy",
+  "version": "1.0",
+  "autoApprovalRules": {
+    "severityThresholds": {
+      "low": {
+        "autoApprove": true,
+        "maxDevices": 1000
+      },
+      "medium": {
+        "autoApprove": true,
+        "maxDevices": 100
+      },
+      "high": {
+        "autoApprove": false,
+        "requiresApproval": true
+      },
+      "critical": {
+        "autoApprove": false,
+        "requiresApproval": true,
+        "urgentNotification": true
+      }
+    },
+    "maintenanceWindows": [
+      {
+        "dayOfWeek": [
+          "Tuesday",
+          "Wednesday",
+          "Thursday"
+        ],
+        "startTime": "02:00",
+        "endTime": "06:00",
+        "timezone": "UTC"
+      }
+    ],
+    "excludedSystems": [
+      "production-db-primary",
+      "payment-gateway"
+    ],
+    "testGroupSize": 5,
+    "rolloutStrategy": "phased"
+  },
+  "rollbackPolicy": {
+    "autoRollbackOnFailure": true,
+    "failureThreshold": 0.1,
+    "verificationChecks": [
+      "service_status",
+      "connectivity",
+      "performance"
+    ]
+  },
+  "notificationPolicy": {
+    "channels": [
+      "slack",
+      "email"
+    ],
+    "escalationPath": [
+      "team-lead",
+      "manager",
+      "director"
+    ],
+    "escalationDelay": 1800
+  }
+}
