@@ -1,14 +1,19 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import api from '../lib/api'
 
 const InventoryList = () => {
   const [inventory, setInventory] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [usingMockData, setUsingMockData] = useState(false)
   const [sortBy, setSortBy] = useState('riskScore')
   const [filterSeverity, setFilterSeverity] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedDevice, setSelectedDevice] = useState(null)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [scanning, setScanning] = useState({})
 
   useEffect(() => {
     loadInventory()
@@ -18,15 +23,46 @@ const InventoryList = () => {
 
   const loadInventory = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/inventory')
-      if (!response.ok) throw new Error('Failed to fetch inventory')
-      const data = await response.json()
-      setInventory(data)
-      setLoading(false)
+      setError(null)
+      const result = await api.getInventory()
+      
+      if (result.success) {
+        setInventory(result.data)
+        setUsingMockData(result.fromCache || false)
+      } else {
+        setError(result.error || 'Failed to fetch inventory')
+      }
     } catch (err) {
       console.error('Error loading inventory:', err)
       setError(err.message)
+    } finally {
       setLoading(false)
+    }
+  }
+
+  const handleViewDetails = (device) => {
+    setSelectedDevice(device)
+    setShowDetailsModal(true)
+  }
+
+  const handleScanNow = async (deviceId) => {
+    setScanning(prev => ({ ...prev, [deviceId]: true }))
+    
+    try {
+      const result = await api.scanDevice(deviceId)
+      
+      if (result.success) {
+        alert(`Scan initiated successfully for device ${deviceId}. ${result.data.message || ''}`)
+        // Reload inventory after scan
+        setTimeout(() => loadInventory(), 2000)
+      } else {
+        alert('Failed to initiate scan: ' + result.error)
+      }
+    } catch (err) {
+      console.error('Scan error:', err)
+      alert('Failed to initiate scan: ' + err.message)
+    } finally {
+      setScanning(prev => ({ ...prev, [deviceId]: false }))
     }
   }
 
@@ -115,6 +151,18 @@ const InventoryList = () => {
 
   return (
     <div className="space-y-6">
+      {/* Mock Data Banner */}
+      {usingMockData && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <span className="text-yellow-600">⚠️</span>
+            <p className="text-yellow-800 font-medium">
+              Using demo data - API unavailable. Showing sample devices for demonstration.
+            </p>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Device Inventory</h2>
@@ -308,11 +356,22 @@ const InventoryList = () => {
                   Last Seen: {new Date(device.lastSeenAt).toLocaleString()}
                 </p>
                 <div className="flex gap-2">
-                  <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                  <button 
+                    onClick={() => handleViewDetails(device)}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                  >
                     View Details
                   </button>
-                  <button className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors">
-                    Scan Now
+                  <button 
+                    onClick={() => handleScanNow(device.id)}
+                    disabled={scanning[device.id]}
+                    className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                      scanning[device.id]
+                        ? 'bg-gray-400 text-white cursor-not-allowed'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {scanning[device.id] ? 'Scanning...' : 'Scan Now'}
                   </button>
                 </div>
               </div>
@@ -320,6 +379,154 @@ const InventoryList = () => {
           ))
         )}
       </div>
+
+      {/* Device Details Modal */}
+      {showDetailsModal && selectedDevice && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold">{selectedDevice.name}</h2>
+                <p className="text-sm opacity-90">Device ID: {selectedDevice.id}</p>
+              </div>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-6">
+              {/* Risk Score */}
+              <div className={`rounded-lg p-4 border-2 ${getRiskBadge(selectedDevice.riskScore)}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium opacity-80">Overall Risk Score</p>
+                    <p className="text-3xl font-bold">{selectedDevice.riskScore.toFixed(1)}/100</p>
+                  </div>
+                  <div className="text-5xl">
+                    {selectedDevice.riskScore >= 80 ? '🔴' : selectedDevice.riskScore >= 60 ? '🟠' : selectedDevice.riskScore >= 40 ? '🟡' : '🟢'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Device Information */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">Type</p>
+                  <p className="font-semibold text-gray-900">{selectedDevice.type}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">IP Address</p>
+                  <p className="font-semibold text-gray-900">{selectedDevice.ipAddress}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">MAC Address</p>
+                  <p className="font-semibold text-gray-900">{selectedDevice.macAddress}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">Last Seen</p>
+                  <p className="font-semibold text-gray-900">{new Date(selectedDevice.lastSeenAt).toLocaleString()}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">Client</p>
+                  <p className="font-semibold text-gray-900">{selectedDevice.client}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">Site</p>
+                  <p className="font-semibold text-gray-900">{selectedDevice.site}</p>
+                </div>
+              </div>
+
+              {/* Operating System */}
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <p className="text-sm text-blue-600 font-medium mb-2">Operating System</p>
+                <p className="text-lg font-semibold text-gray-900">{selectedDevice.operatingSystem}</p>
+              </div>
+
+              {/* Vulnerability Statistics */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-3">Vulnerability Statistics</h3>
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="bg-white border-2 border-gray-200 rounded-lg p-4 text-center">
+                    <p className="text-3xl font-bold text-gray-900">{selectedDevice.vulnerabilityStats?.total || 0}</p>
+                    <p className="text-sm text-gray-600 mt-1">Total</p>
+                  </div>
+                  <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 text-center">
+                    <p className="text-3xl font-bold text-red-600">{selectedDevice.vulnerabilityStats?.critical || 0}</p>
+                    <p className="text-sm text-red-600 mt-1">Critical</p>
+                  </div>
+                  <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-4 text-center">
+                    <p className="text-3xl font-bold text-orange-600">{selectedDevice.vulnerabilityStats?.high || 0}</p>
+                    <p className="text-sm text-orange-600 mt-1">High</p>
+                  </div>
+                  <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 text-center">
+                    <p className="text-3xl font-bold text-yellow-600">{selectedDevice.vulnerabilityStats?.medium || 0}</p>
+                    <p className="text-sm text-yellow-600 mt-1">Medium</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* All Vulnerabilities */}
+              {selectedDevice.topVulnerabilities && selectedDevice.topVulnerabilities.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">All Vulnerabilities</h3>
+                  <div className="space-y-2">
+                    {selectedDevice.topVulnerabilities.map((vuln, idx) => (
+                      <div 
+                        key={idx}
+                        className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <span className="font-mono text-lg font-bold text-gray-900">{vuln.cveId}</span>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${getSeverityColor(vuln.severity)}`}>
+                              {vuln.severity}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-gray-600">CVSS Score</p>
+                            <p className="text-2xl font-bold text-gray-900">{vuln.cvssScore}</p>
+                          </div>
+                        </div>
+                        {vuln.description && (
+                          <p className="text-sm text-gray-700 mt-2">{vuln.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => handleScanNow(selectedDevice.id)}
+                  disabled={scanning[selectedDevice.id]}
+                  className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${
+                    scanning[selectedDevice.id]
+                      ? 'bg-gray-400 text-white cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {scanning[selectedDevice.id] ? 'Scanning...' : '🔍 Rescan Device'}
+                </button>
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

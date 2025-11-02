@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import api from '../lib/api'
 
 const AlertManagement = () => {
   const [alerts, setAlerts] = useState([])
@@ -9,6 +10,10 @@ const AlertManagement = () => {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterSeverity, setFilterSeverity] = useState('all')
+  const [processingAlert, setProcessingAlert] = useState({})
+  const [selectedDevice, setSelectedDevice] = useState(null)
+  const [showDeviceModal, setShowDeviceModal] = useState(false)
+  const [usingMockData, setUsingMockData] = useState(false)
   const [newAlert, setNewAlert] = useState({
     title: '',
     description: '',
@@ -25,10 +30,14 @@ const AlertManagement = () => {
 
   const loadAlerts = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/alerts')
-      if (!response.ok) throw new Error('Failed to fetch alerts')
-      const data = await response.json()
-      setAlerts(data)
+      const result = await api.getAlerts()
+      if (result.success) {
+        setAlerts(result.data)
+        setUsingMockData(result.fromCache || false)
+        setError(null)
+      } else {
+        setError('Failed to load alerts')
+      }
       setLoading(false)
     } catch (err) {
       console.error('Error loading alerts:', err)
@@ -37,27 +46,92 @@ const AlertManagement = () => {
     }
   }
 
+  const handleAcknowledge = async (alertId) => {
+    setProcessingAlert(prev => ({ ...prev, [alertId]: 'acknowledging' }))
+    
+    try {
+      const result = await api.acknowledgeAlert(alertId)
+      
+      if (result.success) {
+        // Update local state
+        setAlerts(alerts.map(alert => 
+          alert.id === alertId ? { ...alert, status: 'ACKNOWLEDGED', updatedAt: new Date().toISOString() } : alert
+        ))
+        alert(`Alert ${alertId} acknowledged successfully`)
+      } else {
+        throw new Error('Failed to acknowledge alert')
+      }
+    } catch (err) {
+      console.error('Acknowledge error:', err)
+      alert('Failed to acknowledge alert: ' + err.message)
+    } finally {
+      setProcessingAlert(prev => ({ ...prev, [alertId]: null }))
+    }
+  }
+
+  const handleResolve = async (alertId) => {
+    setProcessingAlert(prev => ({ ...prev, [alertId]: 'resolving' }))
+    
+    try {
+      const result = await api.resolveAlert(alertId, 'Manually resolved')
+      
+      if (result.success) {
+        // Update local state
+        setAlerts(alerts.map(alert => 
+          alert.id === alertId ? { ...alert, status: 'RESOLVED', updatedAt: new Date().toISOString() } : alert
+        ))
+        alert(`Alert ${alertId} resolved successfully`)
+      } else {
+        throw new Error('Failed to resolve alert')
+      }
+    } catch (err) {
+      console.error('Resolve error:', err)
+      alert('Failed to resolve alert: ' + err.message)
+    } finally {
+      setProcessingAlert(prev => ({ ...prev, [alertId]: null }))
+    }
+  }
+
+  const handleViewDevice = async (deviceId, deviceName) => {
+    try {
+      const result = await api.getInventory()
+      
+      if (result.success) {
+        const device = result.data.find(d => d.id === deviceId)
+        
+        if (device) {
+          setSelectedDevice(device)
+          setShowDeviceModal(true)
+        } else {
+          alert(`Device ${deviceName} not found in inventory`)
+        }
+      } else {
+        throw new Error('Failed to fetch device')
+      }
+    } catch (err) {
+      console.error('View device error:', err)
+      alert('Failed to load device details: ' + err.message)
+    }
+  }
+
   const createAlert = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch('http://localhost:3001/api/alerts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newAlert)
-      })
+      const result = await api.createAlert(newAlert)
       
-      if (!response.ok) throw new Error('Failed to create alert')
-      
-      const createdAlert = await response.json()
-      setAlerts([createdAlert, ...alerts])
-      setShowCreateForm(false)
-      setNewAlert({
-        title: '',
-        description: '',
-        severity: 'MEDIUM',
-        deviceId: '',
-        deviceName: ''
-      })
+      if (result.success) {
+        setAlerts([result.data, ...alerts])
+        setShowCreateForm(false)
+        setNewAlert({
+          title: '',
+          description: '',
+          severity: 'MEDIUM',
+          deviceId: '',
+          deviceName: ''
+        })
+      } else {
+        throw new Error('Failed to create alert')
+      }
     } catch (err) {
       console.error('Error creating alert:', err)
       alert('Failed to create alert: ' + err.message)
@@ -116,6 +190,24 @@ const AlertManagement = () => {
 
   return (
     <div className="space-y-6">
+      {/* Demo Data Banner */}
+      {usingMockData && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700">
+                ⚠️ Using demo data - API unavailable. Showing sample alerts for demonstration.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
         <div className="flex items-center justify-between mb-4">
@@ -374,13 +466,38 @@ const AlertManagement = () => {
               <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-between items-center rounded-b-lg">
                 <p className="text-sm text-gray-600">ID: {alert.id}</p>
                 <div className="flex gap-2">
-                  <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
-                    Acknowledge
+                  <button 
+                    onClick={() => handleAcknowledge(alert.id)}
+                    disabled={alert.status === 'ACKNOWLEDGED' || alert.status === 'RESOLVED' || processingAlert[alert.id] === 'acknowledging'}
+                    className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                      alert.status === 'ACKNOWLEDGED' || alert.status === 'RESOLVED'
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : processingAlert[alert.id] === 'acknowledging'
+                        ? 'bg-blue-400 text-white cursor-wait'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
+                  >
+                    {processingAlert[alert.id] === 'acknowledging' ? 'Acknowledging...' : 
+                     alert.status === 'ACKNOWLEDGED' ? 'Acknowledged' : 'Acknowledge'}
                   </button>
-                  <button className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors">
-                    Resolve
+                  <button 
+                    onClick={() => handleResolve(alert.id)}
+                    disabled={alert.status === 'RESOLVED' || processingAlert[alert.id] === 'resolving'}
+                    className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                      alert.status === 'RESOLVED'
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : processingAlert[alert.id] === 'resolving'
+                        ? 'bg-green-400 text-white cursor-wait'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                  >
+                    {processingAlert[alert.id] === 'resolving' ? 'Resolving...' : 
+                     alert.status === 'RESOLVED' ? 'Resolved' : 'Resolve'}
                   </button>
-                  <button className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors">
+                  <button 
+                    onClick={() => handleViewDevice(alert.deviceId, alert.deviceName)}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors"
+                  >
                     View Device
                   </button>
                 </div>
@@ -389,6 +506,63 @@ const AlertManagement = () => {
           ))
         )}
       </div>
+
+      {/* Device Details Modal */}
+      {showDeviceModal && selectedDevice && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold">{selectedDevice.name}</h2>
+                <p className="text-sm opacity-90">Device from Alert</p>
+              </div>
+              <button
+                onClick={() => setShowDeviceModal(false)}
+                className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-sm text-gray-600">Type</p>
+                  <p className="font-semibold text-gray-900">{selectedDevice.type}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-sm text-gray-600">IP Address</p>
+                  <p className="font-semibold text-gray-900">{selectedDevice.ipAddress}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-sm text-gray-600">Operating System</p>
+                  <p className="font-semibold text-gray-900">{selectedDevice.operatingSystem}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-sm text-gray-600">Risk Score</p>
+                  <p className="font-semibold text-gray-900">{selectedDevice.riskScore.toFixed(1)}/100</p>
+                </div>
+              </div>
+
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm font-semibold text-red-800 mb-2">Critical Vulnerabilities</p>
+                <p className="text-3xl font-bold text-red-600">{selectedDevice.vulnerabilityStats?.critical || 0}</p>
+              </div>
+
+              <button
+                onClick={() => setShowDeviceModal(false)}
+                className="w-full py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

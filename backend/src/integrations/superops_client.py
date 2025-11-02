@@ -40,90 +40,128 @@ class SuperOpsClient:
         )
 
     def get_device_inventory(self, filters: Optional[Dict] = None) -> List[Dict]:
-        """Fetch device inventory from SuperOps"""
+        """Fetch device inventory from SuperOps using simplified query"""
+        # Simplified GraphQL query without complex filters
         query = gql("""
-            query GetDevices($filters: DeviceFilterInput) {
-                devices(filters: $filters) {
-                    id
-                    name
-                    type
-                    operatingSystem
-                    ipAddress
-                    macAddress
-                    lastSeenAt
-                    client {
+            query {
+                devices {
+                    nodes {
                         id
                         name
-                    }
-                    site {
-                        id
-                        name
+                        deviceType
+                        osName
+                        primaryIpAddress
+                        macAddress
+                        lastSeenAt
+                        clientName
+                        siteName
                     }
                 }
             }
         """)
 
         try:
-            result = self.client.execute(query, variable_values={'filters': filters})
-            return result.get('devices', [])
+            result = self.client.execute(query)
+            devices = result.get('devices', {}).get('nodes', [])
+            
+            # Transform to expected format
+            return [{
+                'id': d.get('id'),
+                'name': d.get('name'),
+                'type': d.get('deviceType', 'Unknown'),
+                'operatingSystem': d.get('osName', 'Unknown'),
+                'ipAddress': d.get('primaryIpAddress'),
+                'macAddress': d.get('macAddress'),
+                'lastSeenAt': d.get('lastSeenAt'),
+                'client': {'name': d.get('clientName', 'Unknown')},
+                'site': {'name': d.get('siteName', 'Unknown')}
+            } for d in devices]
         except Exception as e:
             logger.error(f"Error fetching device inventory: {e}")
             raise
 
     def get_patch_status(self, device_ids: Optional[List[str]] = None) -> List[Dict]:
-        """Get patch status for devices"""
+        """Get patch status for devices using simplified query"""
+        # Simplified query without variables
         query = gql("""
-            query GetPatchStatus($deviceIds: [ID!]) {
-                patchStatus(deviceIds: $deviceIds) {
-                    deviceId
-                    deviceName
-                    totalPatches
-                    installedPatches
-                    pendingPatches
-                    failedPatches
-                    lastPatchDate
-                    complianceStatus
-                    criticalPatches {
+            query {
+                patches {
+                    nodes {
                         id
                         title
+                        description
                         severity
-                        cveId
-                        publishDate
+                        category
+                        releaseDate
+                        status
+                        kbArticleId
+                        affectedDeviceCount
                     }
                 }
             }
         """)
 
         try:
-            result = self.client.execute(query, variable_values={'deviceIds': device_ids})
-            return result.get('patchStatus', [])
+            result = self.client.execute(query)
+            patches = result.get('patches', {}).get('nodes', [])
+            
+            # Transform to expected format
+            return [{
+                'id': p.get('id'),
+                'title': p.get('title'),
+                'description': p.get('description'),
+                'severity': p.get('severity', 'MEDIUM').upper(),
+                'releaseDate': p.get('releaseDate'),
+                'status': p.get('status', 'AVAILABLE').upper(),
+                'cveId': None,  # May not be available in all patches
+                'relatedCVEs': [],
+                'affectedDevices': [],
+                'size': 'Unknown',
+                'vendor': 'Various',
+                'requiresReboot': False
+            } for p in patches]
         except Exception as e:
             logger.error(f"Error fetching patch status: {e}")
             raise
 
     def get_alerts(self, filters: Optional[Dict] = None) -> List[Dict]:
-        """Fetch active alerts"""
+        """Fetch active alerts using simplified query"""
+        # Simplified query
         query = gql("""
-            query GetAlerts($filters: AlertFilterInput) {
-                alerts(filters: $filters) {
-                    id
-                    title
-                    description
-                    severity
-                    status
-                    source
-                    deviceId
-                    deviceName
-                    createdAt
-                    updatedAt
-                    metadata
+            query {
+                alerts {
+                    nodes {
+                        id
+                        title
+                        description
+                        severity
+                        status
+                        deviceId
+                        deviceName
+                        createdAt
+                        updatedAt
+                    }
                 }
             }
         """)
 
         try:
-            result = self.client.execute(query, variable_values={'filters': filters})
-            return result.get('alerts', [])
+            result = self.client.execute(query)
+            alerts = result.get('alerts', {}).get('nodes', [])
+            
+            # Transform to expected format
+            return [{
+                'id': a.get('id'),
+                'title': a.get('title'),
+                'description': a.get('description'),
+                'severity': a.get('severity', 'MEDIUM').upper(),
+                'status': a.get('status', 'ACTIVE').upper(),
+                'deviceId': a.get('deviceId'),
+                'deviceName': a.get('deviceName'),
+                'cveId': None,
+                'createdAt': a.get('createdAt'),
+                'acknowledgedAt': a.get('updatedAt') if a.get('status') == 'ACKNOWLEDGED' else None
+            } for a in alerts]
         except Exception as e:
             logger.error(f"Error fetching alerts: {e}")
             raise

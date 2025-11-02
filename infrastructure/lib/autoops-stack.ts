@@ -146,6 +146,20 @@ export class AutoOpsStack extends cdk.Stack {
       memorySize: 1024,
     });
 
+    // AI Agents Service Function (NEW - Multi-Agent AI)
+    const aiAgentsFunction = new lambda.Function(this, 'AIAgentsFunction', {
+      ...commonLambdaProps,
+      functionName: 'autoops-ai-agents',
+      code: lambda.Code.fromAsset('../backend/src'),
+      handler: 'handlers.ai_agents_handler.lambda_handler',
+      timeout: cdk.Duration.seconds(180),
+      memorySize: 2048, // CrewAI needs more memory
+      environment: {
+        ...commonLambdaProps.environment,
+        USE_CREWAI: 'true',
+      },
+    });
+
     // Patch Deployment Function
     const patchDeployFunction = new lambda.Function(this, 'PatchDeployFunction', {
       ...commonLambdaProps,
@@ -173,6 +187,14 @@ export class AutoOpsStack extends cdk.Stack {
       resources: ['*'],
     }));
 
+    aiAgentsFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['bedrock:InvokeModel'],
+      resources: ['*'],
+    }));
+
+    policiesTable.grantReadWriteData(aiAgentsFunction);
+    actionsTable.grantReadWriteData(aiAgentsFunction);
+
     // ============================================
     // API Gateway
     // ============================================
@@ -196,6 +218,15 @@ export class AutoOpsStack extends cdk.Stack {
     api.root.addResource('patches').addResource('status').addMethod('GET', apiIntegration);
     api.root.addResource('alerts').addResource('active').addMethod('GET', apiIntegration);
     api.root.addResource('actions').addResource('recent').addMethod('GET', apiIntegration);
+
+    // AI Agents endpoints
+    const aiAgentsIntegration = new apigateway.LambdaIntegration(aiAgentsFunction);
+    const aiResource = api.root.addResource('ai').addResource('agents');
+    aiResource.addResource('status').addMethod('GET', aiAgentsIntegration);
+    aiResource.addResource('prioritize').addMethod('POST', aiAgentsIntegration);
+    aiResource.addResource('correlate-alerts').addMethod('POST', aiAgentsIntegration);
+    aiResource.addResource('decide-remediation').addMethod('POST', aiAgentsIntegration);
+    aiResource.addResource('learn').addMethod('POST', aiAgentsIntegration);
 
     // ============================================
     // Outputs

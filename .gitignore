@@ -1,39 +1,362 @@
-# Dependencies
-node_modules/
-__pycache__/
-*.pyc
-.venv/
-venv/
+# =====================================================
+# AutoOps AI - Comprehensive .gitignore
+# =====================================================
 
-# Environment
+# ===== DEPENDENCIES =====
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.conda/
+conda-meta/
+
+# ===== ENVIRONMENT & SECRETS =====
 .env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+.env.staging
+*.env
 
-# IDE
+# API Keys and Secrets
+secrets.json
+credentials.json
+config/secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+
+# AWS Credentials
+.aws/
+aws-exports.js
+
+# ===== FRAMEWORKS & BUILD TOOLS =====
+# Next.js
+.next/
+.vercel/
+out/
+
+# React
+build/
+.cache/
+
+# Python/Flask
+instance/
+.webassets-cache
+
+# CDK
+cdk.out/
+cdk.context.json
+*.d.ts
+
+# AWS SAM
+.aws-sam/
+samconfig.toml
+
+# ===== IDE & EDITORS =====
+# VS Code
 .vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# JetBrains IDEs
 .idea/
+*.iws
+*.iml
+*.ipr
+
+# Vim
 *.swp
 *.swo
+*~
 
-# Build
-dist/
-build/
-.next/
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ===== OPERATING SYSTEM =====
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ===== LOGS & MONITORING =====
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# CloudWatch logs
+cloudwatch-logs/
+*.cloudwatch
+
+# Application logs
+app.log
+error.log
+debug.log
+access.log
+
+# ===== TESTING =====
+# Coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jest
+coverage/
+.nyc_output
+
+# ===== AI/ML SPECIFIC =====
+# Model files
+*.model
+*.pkl
+*.joblib
+*.h5
+*.hdf5
+models/
+checkpoints/
+
+# Data files
+*.csv
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+*.parquet
+*.db
+*.sqlite
+*.sqlite3
+
+# Vector stores
+faiss_index/
+chroma_db/
+embeddings/
+
+# ===== CLOUD & DEPLOYMENT =====
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+terraform.tfvars.json
+
+# Docker
+.dockerignore
+Dockerfile.prod
+docker-compose.override.yml
+.docker/
+
+# Kubernetes
+*.kubeconfig
+kustomization.yaml
+
+# ===== TEMPORARY & CACHE =====
+# General
+*.tmp
+*.temp
+*.cache
+.cache/
+.parcel-cache/
+
+# Package managers
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# ===== ARCHIVES & BINARIES =====
 *.zip
 *.tar.gz
+*.rar
+*.7z
+*.dmg
+*.iso
+*.exe
+*.dll
+*.so
+*.dylib
 
-# AWS
-cdk.out/
-.aws-sam/
+# ===== PROJECT SPECIFIC =====
+# AutoOps specific
+deployment-outputs.json
+infrastructure-outputs.json
+lambda-deployment-package.zip
+frontend-build.tar.gz
 
-# Logs
-*.log
-logs/
+# Backup files
+*.backup
+*.bak
+*.orig
 
-# OS
-.DS_Store
-Thumbs.db
+# Database dumps
+*.dump
+*.sql
 
-# Testing
-.coverage
-.pytest_cache/
+# Reports
+reports/
+metrics/
+analytics/
+
+# ===== SECURITY =====
+# Certificate files
+*.crt
+*.cert
+*.cer
+*.der
+
+# SSH keys
+id_rsa
+id_rsa.pub
+known_hosts
+
+# GPG keys
+*.gpg
+*.asc
+
+# ===== MISCELLANEOUS =====
+# Lock files (keep package-lock.json but ignore others)
+!package-lock.json
+*.lock
+!yarn.lock
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.parcel-cache
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*

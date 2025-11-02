@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import InventoryList from './InventoryList';
 import AlertManagement from './AlertManagement';
+import PatchManagementSystem from './PatchManagementSystem';
 
 const EnhancedDashboard = () => {
   const [patchStatus, setPatchStatus] = useState({});
@@ -392,7 +393,7 @@ const EnhancedDashboard = () => {
 
         {/* Patches Tab */}
         {activeTab === 'patches' && (
-          <PatchManagement patchStatus={patchStatus} stats={stats} />
+          <PatchManagementSystem />
         )}
 
         {/* Alerts Tab */}
