@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import axios from 'axios';
@@ -6,7 +8,10 @@ const Dashboard = () => {
   const [patchStatus, setPatchStatus] = useState({});
   const [alerts, setAlerts] = useState([]);
   const [aiActions, setAiActions] = useState([]);
+  const [topCVEs, setTopCVEs] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     loadDashboardData();
@@ -16,28 +21,212 @@ const Dashboard = () => {
 
   const loadDashboardData = async () => {
     try {
-      const session = await fetchAuthSession();
-      const token = session.tokens.idToken.toString();
+      // For local development, use mock data instead of API calls
+      if (process.env.NODE_ENV === 'development') {
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        setPatchStatus({
+          totalDevices: 150,
+          compliant: 128,
+          pending: 22,
+          lastUpdate: new Date().toISOString()
+        });
+        
+        setAlerts([
+          {
+            id: 1,
+            title: "High CPU Usage on SQL Server",
+            description: "SQL Server on PROD-DB-01 showing 95% CPU utilization",
+            severity: "critical"
+          },
+          {
+            id: 2,
+            title: "Failed Windows Update",
+            description: "KB5034441 failed to install on multiple workstations",
+            severity: "high"
+          },
+          {
+            id: 3,
+            title: "Low Disk Space Warning",
+            description: "C: drive on FILE-SRV-02 has less than 10% free space",
+            severity: "medium"
+          }
+        ]);
+        
+        setAiActions([
+          {
+            id: 1,
+            type: "Patch Deployment",
+            description: "Deployed security updates to 25 workstations",
+            status: "completed",
+            timestamp: new Date(Date.now() - 3600000).toISOString()
+          },
+          {
+            id: 2,
+            type: "Alert Correlation",
+            description: "Correlated 5 disk space alerts into single incident",
+            status: "completed",
+            timestamp: new Date(Date.now() - 10800000).toISOString()
+          },
+          {
+            id: 3,
+            type: "Risk Assessment",
+            description: "Analyzing impact of pending CVE-2024-1234 patches",
+            status: "pending",
+            timestamp: new Date(Date.now() - 1800000).toISOString()
+          }
+        ]);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        // Mock Top CVEs data
+        setTopCVEs([
+          {
+            id: "CVE-2024-9123",
+            cvssScore: 9.8,
+            severity: "CRITICAL",
+            description: "Critical RCE vulnerability in Apache HTTP Server allows attackers to execute arbitrary code",
+            published: "2024-10-15T00:00:00",
+            affectedSystems: 45,
+            patchAvailable: true
+          },
+          {
+            id: "CVE-2024-8956",
+            cvssScore: 9.4,
+            severity: "CRITICAL",
+            description: "Windows Kernel elevation of privilege vulnerability",
+            published: "2024-10-12T00:00:00",
+            affectedSystems: 89,
+            patchAvailable: true
+          },
+          {
+            id: "CVE-2024-8743",
+            cvssScore: 9.1,
+            severity: "CRITICAL",
+            description: "SQL Server remote code execution vulnerability allows unauthenticated attackers",
+            published: "2024-10-10T00:00:00",
+            affectedSystems: 23,
+            patchAvailable: true
+          },
+          {
+            id: "CVE-2024-8521",
+            cvssScore: 8.8,
+            severity: "HIGH",
+            description: "OpenSSL buffer overflow vulnerability in TLS handshake processing",
+            published: "2024-10-08T00:00:00",
+            affectedSystems: 156,
+            patchAvailable: true
+          },
+          {
+            id: "CVE-2024-8234",
+            cvssScore: 8.6,
+            severity: "HIGH",
+            description: "Chrome V8 type confusion vulnerability allows remote code execution",
+            published: "2024-10-05T00:00:00",
+            affectedSystems: 67,
+            patchAvailable: true
+          },
+          {
+            id: "CVE-2024-7912",
+            cvssScore: 8.4,
+            severity: "HIGH",
+            description: "VMware ESXi heap overflow vulnerability in USB service",
+            published: "2024-10-03T00:00:00",
+            affectedSystems: 12,
+            patchAvailable: false
+          },
+          {
+            id: "CVE-2024-7654",
+            cvssScore: 8.1,
+            severity: "HIGH",
+            description: "Linux Kernel use-after-free vulnerability in netfilter subsystem",
+            published: "2024-10-01T00:00:00",
+            affectedSystems: 34,
+            patchAvailable: true
+          },
+          {
+            id: "CVE-2024-7432",
+            cvssScore: 7.8,
+            severity: "HIGH",
+            description: "Microsoft Exchange Server privilege escalation vulnerability",
+            published: "2024-09-28T00:00:00",
+            affectedSystems: 28,
+            patchAvailable: true
+          },
+          {
+            id: "CVE-2024-7123",
+            cvssScore: 7.5,
+            severity: "HIGH",
+            description: "Jenkins arbitrary file read vulnerability through crafted requests",
+            published: "2024-09-25T00:00:00",
+            affectedSystems: 8,
+            patchAvailable: true
+          },
+          {
+            id: "CVE-2024-6890",
+            cvssScore: 7.2,
+            severity: "HIGH",
+            description: "Docker Engine privilege escalation through container escape",
+            published: "2024-09-22T00:00:00",
+            affectedSystems: 19,
+            patchAvailable: true
+          }
+        ]);
 
-      const [patchRes, alertsRes, actionsRes] = await Promise.all([
-        axios.get(`${apiUrl}/patches/status`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${apiUrl}/alerts/active`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${apiUrl}/actions/recent`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ]);
+        // Mock comprehensive stats
+        setStats({
+          vulnerabilities: {
+            critical: 12,
+            high: 28,
+            medium: 45,
+            low: 18,
+            total: 103
+          },
+          patches: {
+            deployed: 128,
+            pending: 22,
+            failed: 5
+          },
+          devices: {
+            total: 150,
+            online: 145,
+            offline: 5,
+            critical: 2
+          },
+          automation: {
+            tasksCompleted: 687,
+            tasksRunning: 8,
+            successRate: 97.2
+          }
+        });
+      } else {
+        // Production API calls
+        const session = await fetchAuthSession();
+        const token = session.tokens.idToken.toString();
 
-      setPatchStatus(patchRes.data);
-      setAlerts(alertsRes.data);
-      setAiActions(actionsRes.data);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+        const [patchRes, alertsRes, actionsRes] = await Promise.all([
+          axios.get(`${apiUrl}/patches/status`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get(`${apiUrl}/alerts/active`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get(`${apiUrl}/actions/recent`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+
+        setPatchStatus(patchRes.data);
+        setAlerts(alertsRes.data);
+        setAiActions(actionsRes.data);
+      }
     } catch (error) {
       console.error('Error loading dashboard:', error);
+      // Fallback to mock data on error
+      setPatchStatus({ totalDevices: 0, compliant: 0, pending: 0 });
+      setAlerts([]);
+      setAiActions([]);
     } finally {
       setLoading(false);
     }
@@ -46,7 +235,10 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div 
+          data-testid="loading-spinner"
+          className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
+        ></div>
       </div>
     );
   }
